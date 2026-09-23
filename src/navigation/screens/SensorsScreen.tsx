@@ -1,18 +1,29 @@
 import React from 'react';
+
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
+  Pressable,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
 
+import { useIoT } from '../../context/IoTContext';
+
 export default function SensorsScreen() {
+
+  const {
+    sensors,
+    sensorsLoading,
+    refreshSensors,
+  } = useIoT();
+
   return (
     <ScrollView style={styles.container}>
 
-      {/* Header */}
       <Text style={styles.title}>
         Sensors
       </Text>
@@ -21,7 +32,6 @@ export default function SensorsScreen() {
         Monitor your environment
       </Text>
 
-      {/* Temperature */}
       <View style={styles.sensorCard}>
 
         <View style={styles.sensorHeader}>
@@ -38,7 +48,7 @@ export default function SensorsScreen() {
         </View>
 
         <Text style={styles.sensorValue}>
-          28°C
+          {sensors.temperature}°C
         </Text>
 
         <Text style={styles.sensorDescription}>
@@ -47,7 +57,6 @@ export default function SensorsScreen() {
 
       </View>
 
-      {/* Humidity */}
       <View style={styles.sensorCard}>
 
         <View style={styles.sensorHeader}>
@@ -64,7 +73,7 @@ export default function SensorsScreen() {
         </View>
 
         <Text style={styles.sensorValue}>
-          65%
+          {sensors.humidity}%
         </Text>
 
         <Text style={styles.sensorDescription}>
@@ -73,7 +82,6 @@ export default function SensorsScreen() {
 
       </View>
 
-      {/* Light Level */}
       <View style={styles.sensorCard}>
 
         <View style={styles.sensorHeader}>
@@ -90,7 +98,7 @@ export default function SensorsScreen() {
         </View>
 
         <Text style={styles.sensorValue}>
-          720 lux
+          {sensors.lightLevel} lux
         </Text>
 
         <Text style={styles.sensorDescription}>
@@ -98,6 +106,38 @@ export default function SensorsScreen() {
         </Text>
 
       </View>
+
+      <Pressable
+        style={[
+          styles.refreshButton,
+          sensorsLoading && styles.refreshButtonDisabled,
+        ]}
+        disabled={sensorsLoading}
+        onPress={refreshSensors}
+      >
+        {sensorsLoading ? (
+          <>
+            <ActivityIndicator
+              size="small"
+              color="#ffffff"
+            />
+            <Text style={styles.refreshButtonText}>
+              Refreshing Sensors...
+            </Text>
+          </>
+        ) : (
+          <>
+            <Ionicons
+              name="refresh-outline"
+              size={18}
+              color="#ffffff"
+            />
+            <Text style={styles.refreshButtonText}>
+              Refresh Sensors
+            </Text>
+          </>
+        )}
+      </Pressable>
 
     </ScrollView>
   );
@@ -148,6 +188,27 @@ const styles = StyleSheet.create({
   sensorDescription: {
     fontSize: 13,
     marginTop: 5,
+  },
+
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#007aff',
+    paddingVertical: 15,
+    borderRadius: 12,
+    marginTop: 5,
+  },
+
+  refreshButtonDisabled: {
+    opacity: 0.6,
+  },
+
+  refreshButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
 
 });
