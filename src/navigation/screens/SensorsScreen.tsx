@@ -1,4 +1,7 @@
-import React from 'react';
+import React, {
+  useCallback,
+  useRef,
+} from 'react';
 
 import {
   View,
@@ -10,22 +13,39 @@ import {
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { useIoT } from '../../context/IoTContext';
+import SensorCard from '../../components/SensorCard';
 
 export default function SensorsScreen() {
 
   const {
     sensors,
     sensorsLoading,
+    sensorsLoaded,
     sensorsError,
     gatewayConnected,
-    gatewayConnecting,
     refreshSensors,
     reconnectGateway,
   } = useIoT();
 
   const gatewayOffline = !gatewayConnected;
+
+  const hasAutoRefreshed = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!hasAutoRefreshed.current) {
+        hasAutoRefreshed.current = true;
+        return;
+      }
+
+      refreshSensors();
+    }, [refreshSensors])
+  );
+
+  const showInitialLoading = sensorsLoading && !sensorsLoaded;
 
   return (
     <ScrollView style={styles.container}>
@@ -39,7 +59,7 @@ export default function SensorsScreen() {
       </Text>
 
       {sensorsError ? (
-        <View style={styles.errorContainer}>
+        <View style={styles.centered}>
           <Ionicons
             name="alert-circle-outline"
             size={40}
@@ -49,90 +69,43 @@ export default function SensorsScreen() {
             {sensorsError}
           </Text>
           <Pressable
-            style={styles.retryButton}
+            style={styles.primaryButton}
             onPress={gatewayOffline ? reconnectGateway : refreshSensors}
           >
-            <Text style={styles.retryButtonText}>
+            <Text style={styles.primaryButtonText}>
               {gatewayOffline ? 'Reconnect' : 'Retry'}
             </Text>
           </Pressable>
         </View>
+      ) : showInitialLoading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="small" />
+          <Text style={styles.mutedText}>
+            Refreshing Sensors...
+          </Text>
+        </View>
       ) : (
         <>
-          <View style={styles.sensorCard}>
+          <SensorCard
+            icon="thermometer-outline"
+            label="Temperature"
+            value={`${sensors.temperature}°C`}
+            description="Current room temperature"
+          />
 
-            <View style={styles.sensorHeader}>
+          <SensorCard
+            icon="water-outline"
+            label="Humidity"
+            value={`${sensors.humidity}%`}
+            description="Current relative humidity"
+          />
 
-              <Ionicons
-                name="thermometer-outline"
-                size={30}
-              />
-
-              <Text style={styles.sensorName}>
-                Temperature
-              </Text>
-
-            </View>
-
-            <Text style={styles.sensorValue}>
-              {sensors.temperature}°C
-            </Text>
-
-            <Text style={styles.sensorDescription}>
-              Current room temperature
-            </Text>
-
-          </View>
-
-          <View style={styles.sensorCard}>
-
-            <View style={styles.sensorHeader}>
-
-              <Ionicons
-                name="water-outline"
-                size={30}
-              />
-
-              <Text style={styles.sensorName}>
-                Humidity
-              </Text>
-
-            </View>
-
-            <Text style={styles.sensorValue}>
-              {sensors.humidity}%
-            </Text>
-
-            <Text style={styles.sensorDescription}>
-              Current relative humidity
-            </Text>
-
-          </View>
-
-          <View style={styles.sensorCard}>
-
-            <View style={styles.sensorHeader}>
-
-              <Ionicons
-                name="sunny-outline"
-                size={30}
-              />
-
-              <Text style={styles.sensorName}>
-                Light Level
-              </Text>
-
-            </View>
-
-            <Text style={styles.sensorValue}>
-              {sensors.lightLevel} lux
-            </Text>
-
-            <Text style={styles.sensorDescription}>
-              Current ambient light
-            </Text>
-
-          </View>
+          <SensorCard
+            icon="sunny-outline"
+            label="Light Level"
+            value={`${sensors.lightLevel} lux`}
+            description="Current ambient light"
+          />
         </>
       )}
 
@@ -190,39 +163,15 @@ const styles = StyleSheet.create({
     marginBottom: 25,
   },
 
-  sensorCard: {
-    padding: 20,
-    borderRadius: 15,
-    backgroundColor: '#eeeeee',
-    marginBottom: 15,
-  },
-
-  sensorHeader: {
-    flexDirection: 'row',
+  centered: {
     alignItems: 'center',
-    gap: 10,
-  },
-
-  sensorName: {
-    fontSize: 17,
-    fontWeight: 'bold',
-  },
-
-  sensorValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginTop: 20,
-  },
-
-  sensorDescription: {
-    fontSize: 13,
-    marginTop: 5,
-  },
-
-  errorContainer: {
-    alignItems: 'center',
-    padding: 30,
     gap: 12,
+    padding: 30,
+  },
+
+  mutedText: {
+    fontSize: 14,
+    color: '#666666',
   },
 
   errorText: {
@@ -231,14 +180,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  retryButton: {
+  primaryButton: {
     backgroundColor: '#007aff',
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 10,
   },
 
-  retryButtonText: {
+  primaryButtonText: {
     color: '#ffffff',
     fontSize: 14,
     fontWeight: 'bold',

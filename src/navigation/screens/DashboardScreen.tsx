@@ -1,7 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, Switch } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet } from 'react-native';
+
 import { useIoT } from '../../context/IoTContext';
+import DeviceCard from '../../components/DeviceCard';
+import SensorCard from '../../components/SensorCard';
+import GatewayBanner from '../../components/GatewayBanner';
 
 export default function DashboardScreen() {
 
@@ -13,9 +16,8 @@ export default function DashboardScreen() {
         gatewayConnecting,
         updatingDeviceIds,
         toggleDevice,
+        reconnectGateway,
     } = useIoT();
-
-    const gatewayOffline = !gatewayConnected || gatewayConnecting;
 
     return (
         <View style={styles.container}>
@@ -28,41 +30,29 @@ export default function DashboardScreen() {
                 IoT Dashboard
             </Text>
 
+            <GatewayBanner
+                connecting={gatewayConnecting}
+                connected={gatewayConnected}
+                onReconnect={reconnectGateway}
+            />
+
             <View style={styles.sensorRow}>
 
-                <View style={styles.sensorCard}>
-                    <View style={styles.sensorHeader}>
-                        <Ionicons
-                            name="thermometer-outline"
-                            size={22}
-                        />
+                <SensorCard
+                    compact
+                    style={styles.sensorCard}
+                    icon="thermometer-outline"
+                    label="Temperature"
+                    value={sensorsLoading ? '—' : `${sensors.temperature}°C`}
+                />
 
-                        <Text style={styles.sensorLabel}>
-                            Temperature
-                        </Text>
-                    </View>
-
-                    <Text style={styles.sensorValue}>
-                        {sensorsLoading ? '—' : `${sensors.temperature}°C`}
-                    </Text>
-                </View>
-
-                <View style={styles.sensorCard}>
-                    <View style={styles.sensorHeader}>
-                        <Ionicons
-                            name="water-outline"
-                            size={22}
-                        />
-
-                        <Text style={styles.sensorLabel}>
-                            Humidity
-                        </Text>
-                    </View>
-
-                    <Text style={styles.sensorValue}>
-                        {sensorsLoading ? '—' : `${sensors.humidity}%`}
-                    </Text>
-                </View>
+                <SensorCard
+                    compact
+                    style={styles.sensorCard}
+                    icon="water-outline"
+                    label="Humidity"
+                    value={sensorsLoading ? '—' : `${sensors.humidity}%`}
+                />
 
             </View>
 
@@ -70,51 +60,15 @@ export default function DashboardScreen() {
                 Device Status
             </Text>
 
-            {devices.map((device) => {
-
-                const isUpdating = !!updatingDeviceIds[device.id];
-
-                return (
-                    <View
-                        key={device.id}
-                        style={styles.deviceCard}
-                    >
-
-                        <View style={styles.deviceInfo}>
-
-                            <Ionicons
-                                name={device.icon}
-                                size={28}
-                                style={styles.deviceIcon}
-                            />
-
-                            <View>
-                                <Text style={styles.deviceName}>
-                                    {device.name}
-                                </Text>
-
-                                <Text style={styles.deviceType}>
-                                    {isUpdating
-                                        ? 'Updating...'
-                                        : device.status
-                                            ? 'ON'
-                                            : 'OFF'}
-                                </Text>
-                            </View>
-
-                        </View>
-
-                        <Switch
-                            value={device.status}
-                            disabled={isUpdating || gatewayOffline}
-                            onValueChange={(value) => {
-                                toggleDevice(device.id, value);
-                            }}
-                        />
-
-                    </View>
-                );
-            })}
+            {devices.map((device) => (
+                <DeviceCard
+                    key={device.id}
+                    device={device}
+                    updating={!!updatingDeviceIds[device.id]}
+                    disabled={!gatewayConnected || gatewayConnecting}
+                    onToggle={toggleDevice}
+                />
+            ))}
         </View>
     );
 }
@@ -144,19 +98,6 @@ const styles = StyleSheet.create({
 
     sensorCard: {
         flex: 1,
-        padding: 20,
-        borderRadius: 12,
-        backgroundColor: '#eeeeee',
-    },
-
-    sensorLabel: {
-        fontSize: 14,
-    },
-
-    sensorValue: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        marginTop: 10,
     },
 
     sectionTitle: {
@@ -164,42 +105,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginTop: 30,
         marginBottom: 12,
-    },
-
-    deviceCard: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 18,
-        borderRadius: 12,
-        backgroundColor: '#eeeeee',
-        marginBottom: 12,
-    },
-
-    deviceInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-
-    deviceIcon: {
-        fontSize: 28,
-        marginRight: 12,
-    },
-
-    deviceName: {
-        fontSize: 16,
-        fontWeight: 'bold',
-    },
-
-    deviceType: {
-        fontSize: 13,
-        marginTop: 3,
-    },
-
-    sensorHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
     },
 
 });

@@ -7,8 +7,9 @@ import SensorsScreen from './screens/SensorsScreen';
 import DevicesScreen from './screens/DevicesScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import CustomDrawerContent from './CustomDrawerContent';
+import type { RootDrawerParamList } from './types';
 
-const Drawer = createDrawerNavigator();
+const Drawer = createDrawerNavigator<RootDrawerParamList>();
 
 export default function DrawerNavigator() {
   return (

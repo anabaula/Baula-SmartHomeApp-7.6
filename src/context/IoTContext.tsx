@@ -3,6 +3,8 @@ import React, {
     useContext,
     useState,
     useEffect,
+    useCallback,
+    useMemo,
 } from 'react';
 
 import {
@@ -20,6 +22,7 @@ import {
 type IoTContextType = {
     devices: Device[];
     sensors: SensorData;
+    sensorsLoaded: boolean;
     gatewayConnected: boolean;
     gatewayConnecting: boolean;
     devicesLoading: boolean;
@@ -32,6 +35,7 @@ type IoTContextType = {
     loadDevices: () => Promise<void>;
     toggleDevice: (id: number, value: boolean) => Promise<void>;
     reconnectGateway: () => Promise<void>;
+    dismissDeviceUpdateError: () => void;
 };
 
 const IoTContext = createContext<IoTContextType | undefined>(
@@ -53,6 +57,8 @@ export function IoTProvider({
         humidity: 0,
         lightLevel: 0,
     });
+    const [sensorsLoaded, setSensorsLoaded] =
+        useState(false);
     const [gatewayConnected, setGatewayConnected] =
         useState(false);
     const [gatewayConnecting, setGatewayConnecting] =
@@ -70,7 +76,7 @@ export function IoTProvider({
     const [deviceUpdateError, setDeviceUpdateError] =
         useState<string | null>(null);
 
-    const connectToGateway = async () => {
+    const connectToGateway = useCallback(async () => {
         setGatewayConnecting(true);
         setGatewayConnected(false);
 
@@ -78,15 +84,16 @@ export function IoTProvider({
 
         setGatewayConnecting(false);
         setGatewayConnected(true);
-    };
+    }, []);
 
-    const refreshSensors = async () => {
+    const refreshSensors = useCallback(async () => {
         setSensorsError(null);
         setSensorsLoading(true);
 
         try {
             const data = await getSensorData();
             setSensors(data);
+            setSensorsLoaded(true);
         } catch (error) {
             if (error instanceof IoTGatewayError) {
                 setGatewayConnected(false);
@@ -101,9 +108,9 @@ export function IoTProvider({
         } finally {
             setSensorsLoading(false);
         }
-    };
+    }, []);
 
-    const loadDevices = async () => {
+    const loadDevices = useCallback(async () => {
         setDevicesError(null);
         setDevicesLoading(true);
 
@@ -124,9 +131,9 @@ export function IoTProvider({
         } finally {
             setDevicesLoading(false);
         }
-    };
+    }, []);
 
-    const toggleDevice = async (
+    const toggleDevice = useCallback(async (
         id: number,
         value: boolean
     ) => {
@@ -137,6 +144,8 @@ export function IoTProvider({
         ) {
             return;
         }
+
+        const target = devices.find((device) => device.id === id);
 
         setDeviceUpdateError(null);
 
@@ -170,9 +179,8 @@ export function IoTProvider({
                     'IoT Gateway is disconnected.'
                 );
             } else {
-                const device = devices.find((d) => d.id === id);
                 setDeviceUpdateError(
-                    `Unable to update ${device?.name ?? `device ${id}`}.`
+                    `Unable to update ${target?.name ?? `device ${id}`}.`
                 );
             }
         } finally {
@@ -181,9 +189,14 @@ export function IoTProvider({
                 [id]: false,
             }));
         }
-    };
+    }, [
+        gatewayConnected,
+        gatewayConnecting,
+        updatingDeviceIds,
+        devices,
+    ]);
 
-    const reconnectGateway = async () => {
+    const reconnectGateway = useCallback(async () => {
         setSensorsError(null);
         setDevicesError(null);
         setDeviceUpdateError(null);
@@ -192,33 +205,64 @@ export function IoTProvider({
 
         loadDevices();
         refreshSensors();
-    };
+    }, [
+        connectToGateway,
+        loadDevices,
+        refreshSensors,
+    ]);
+
+    const dismissDeviceUpdateError = useCallback(() => {
+        setDeviceUpdateError(null);
+    }, []);
 
     useEffect(() => {
         connectToGateway();
         loadDevices();
         refreshSensors();
-    }, []);
+    }, [
+        connectToGateway,
+        loadDevices,
+        refreshSensors,
+    ]);
+
+    const value = useMemo(() => ({
+        devices,
+        sensors,
+        sensorsLoaded,
+        gatewayConnected,
+        gatewayConnecting,
+        devicesLoading,
+        sensorsLoading,
+        updatingDeviceIds,
+        sensorsError,
+        devicesError,
+        deviceUpdateError,
+        refreshSensors,
+        loadDevices,
+        toggleDevice,
+        reconnectGateway,
+        dismissDeviceUpdateError,
+    }), [
+        devices,
+        sensors,
+        sensorsLoaded,
+        gatewayConnected,
+        gatewayConnecting,
+        devicesLoading,
+        sensorsLoading,
+        updatingDeviceIds,
+        sensorsError,
+        devicesError,
+        deviceUpdateError,
+        refreshSensors,
+        loadDevices,
+        toggleDevice,
+        reconnectGateway,
+        dismissDeviceUpdateError,
+    ]);
 
     return (
-        <IoTContext.Provider
-            value={{
-                devices,
-                sensors,
-                gatewayConnected,
-                gatewayConnecting,
-                devicesLoading,
-                sensorsLoading,
-                updatingDeviceIds,
-                sensorsError,
-                devicesError,
-                deviceUpdateError,
-                refreshSensors,
-                loadDevices,
-                toggleDevice,
-                reconnectGateway,
-            }}
-        >
+        <IoTContext.Provider value={value}>
             {children}
         </IoTContext.Provider>
     );
