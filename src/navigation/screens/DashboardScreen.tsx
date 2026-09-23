@@ -1,21 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useIoT } from '../../context/IoTContext';
 
-
-
 export default function DashboardScreen() {
-    // const [deviceStatus, setDeviceStatus] = useState(
-    //     devices.reduce((acc, device) => {
-    //         acc[device.id] = device.status;
-    //         return acc;
-    //     }, {} as Record<number, boolean>)
-    // );
 
-    const { devices, 
-        sensors, 
-        toggleDevice } = useIoT();
+    const {
+        devices,
+        sensors,
+        sensorsLoading,
+        gatewayConnected,
+        gatewayConnecting,
+        updatingDeviceIds,
+        toggleDevice,
+    } = useIoT();
+
+    const gatewayOffline = !gatewayConnected || gatewayConnecting;
 
     return (
         <View style={styles.container}>
@@ -33,7 +33,7 @@ export default function DashboardScreen() {
                 <View style={styles.sensorCard}>
                     <View style={styles.sensorHeader}>
                         <Ionicons
-                            name="water-outline"
+                            name="thermometer-outline"
                             size={22}
                         />
 
@@ -43,7 +43,7 @@ export default function DashboardScreen() {
                     </View>
 
                     <Text style={styles.sensorValue}>
-                        {sensors.temperature}°C
+                        {sensorsLoading ? '—' : `${sensors.temperature}°C`}
                     </Text>
                 </View>
 
@@ -60,7 +60,7 @@ export default function DashboardScreen() {
                     </View>
 
                     <Text style={styles.sensorValue}>
-                        {sensors.humidity}%
+                        {sensorsLoading ? '—' : `${sensors.humidity}%`}
                     </Text>
                 </View>
 
@@ -70,72 +70,51 @@ export default function DashboardScreen() {
                 Device Status
             </Text>
 
-            {/* <View style={styles.deviceCard}>
+            {devices.map((device) => {
 
-                <View style={styles.deviceInfo}>
-                    <Text style={styles.deviceIcon}>
-                        💡
-                    </Text>
+                const isUpdating = !!updatingDeviceIds[device.id];
 
-                    <View>
-                        <Text style={styles.deviceName}>
-                            Living Room Light
-                        </Text>
+                return (
+                    <View
+                        key={device.id}
+                        style={styles.deviceCard}
+                    >
 
-                        <Text style={styles.deviceType}>
-                            Smart Light
-                        </Text>
-                    </View>
-                </View>
+                        <View style={styles.deviceInfo}>
 
-                <Text style={styles.deviceStatus}>
-                    ON
-                </Text>
+                            <Ionicons
+                                name={device.icon}
+                                size={28}
+                                style={styles.deviceIcon}
+                            />
 
-            </View>
-
-        </View>
-    ); */}
-
-            {devices.map((device) => (
-
-                <View
-                    key={device.id}
-                    style={styles.deviceCard}
-                >
-
-                    <View style={styles.deviceInfo}>
-
-                        <Ionicons
-                            name={device.icon}
-                            size={28}
-                            style={styles.deviceIcon}
-                        />
-
-                        <View>
-                            <Text style={styles.deviceName}>
-                                {device.name}
-                            </Text>
-
-                            <Text style={styles.deviceType}>
-                                <Text style={styles.deviceState}>
-                                    {device.status ? 'ON' : 'OFF'}
+                            <View>
+                                <Text style={styles.deviceName}>
+                                    {device.name}
                                 </Text>
-                            </Text>
+
+                                <Text style={styles.deviceType}>
+                                    {isUpdating
+                                        ? 'Updating...'
+                                        : device.status
+                                            ? 'ON'
+                                            : 'OFF'}
+                                </Text>
+                            </View>
+
                         </View>
 
+                        <Switch
+                            value={device.status}
+                            disabled={isUpdating || gatewayOffline}
+                            onValueChange={(value) => {
+                                toggleDevice(device.id, value);
+                            }}
+                        />
+
                     </View>
-
-                    <Switch
-                        value={device.status}
-                        onValueChange={(value) => {
-                            toggleDevice(device.id, value);
-                        }}
-                    />
-
-                </View>
-
-            ))}
+                );
+            })}
         </View>
     );
 }
@@ -194,6 +173,7 @@ const styles = StyleSheet.create({
         padding: 18,
         borderRadius: 12,
         backgroundColor: '#eeeeee',
+        marginBottom: 12,
     },
 
     deviceInfo: {
@@ -216,20 +196,10 @@ const styles = StyleSheet.create({
         marginTop: 3,
     },
 
-    deviceStatus: {
-        fontSize: 14,
-        fontWeight: 'bold',
-    },
-
     sensorHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
     },
-
-    deviceState:{
-
-    }
-
 
 });

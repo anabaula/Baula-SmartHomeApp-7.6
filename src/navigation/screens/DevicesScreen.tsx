@@ -16,8 +16,13 @@ export default function DevicesScreen() {
 
   const {
     devices,
+    gatewayConnected,
+    gatewayConnecting,
+    updatingDeviceIds,
     toggleDevice,
   } = useIoT();
+
+  const gatewayOffline = !gatewayConnected || gatewayConnecting;
 
   return (
     <ScrollView style={styles.container}>
@@ -30,52 +35,67 @@ export default function DevicesScreen() {
         Control your connected devices
       </Text>
 
-      {devices.map((device) => (
+      {devices.map((device) => {
 
-        <View
-          key={device.id}
-          style={styles.deviceCard}
-        >
+        const isUpdating = !!updatingDeviceIds[device.id];
 
-          <View style={styles.deviceInfo}>
+        const statusLabel = isUpdating
+          ? 'Updating...'
+          : device.status
+            ? 'ON'
+            : 'OFF';
 
-            <View style={styles.iconContainer}>
+        return (
+          <View
+            key={device.id}
+            style={styles.deviceCard}
+          >
 
-              <Ionicons
-                name={device.icon}
-                size={28}
-              />
+            <View style={styles.deviceInfo}>
+
+              <View style={styles.iconContainer}>
+
+                <Ionicons
+                  name={device.icon}
+                  size={28}
+                />
+
+              </View>
+
+              <View style={styles.deviceDetails}>
+
+                <Text style={styles.deviceName}>
+                  {device.name}
+                </Text>
+
+                <Text style={styles.deviceType}>
+                  {device.type}
+                </Text>
+
+                <Text style={[
+                  styles.deviceState,
+                  device.status
+                    ? styles.deviceStateOn
+                    : styles.deviceStateOff,
+                ]}>
+                  {statusLabel}
+                </Text>
+
+              </View>
 
             </View>
 
-            <View style={styles.deviceDetails}>
-
-              <Text style={styles.deviceName}>
-                {device.name}
-              </Text>
-
-              <Text style={styles.deviceType}>
-                {device.type}
-              </Text>
-
-              <Text style={styles.deviceState}>
-                {device.status ? 'ON' : 'OFF'}
-              </Text>
-
-            </View>
+            <Switch
+              value={device.status}
+              disabled={isUpdating || gatewayOffline}
+              onValueChange={(value) => {
+                toggleDevice(device.id, value);
+              }}
+            />
 
           </View>
-
-          <Switch
-            value={device.status}
-            onValueChange={(value) => {
-              toggleDevice(device.id, value);
-            }}
-          />
-
-        </View>
-
-      ))}
+        );
+      })}
 
     </ScrollView>
   );
@@ -141,6 +161,15 @@ const styles = StyleSheet.create({
   deviceState: {
     fontSize: 12,
     marginTop: 5,
+    fontWeight: 'bold',
+  },
+
+  deviceStateOn: {
+    color: '#168a3e',
+  },
+
+  deviceStateOff: {
+    color: '#888888',
   },
 
 });
