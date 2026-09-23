@@ -5,15 +5,30 @@ import {
   StyleSheet,
   ScrollView,
   Switch,
+  Pressable,
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+
+import { useIoT } from '../../context/IoTContext';
 
 export default function SettingsScreen() {
 
   const [notifications, setNotifications] = useState(true);
   const [autoConnect, setAutoConnect] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
+
+  const {
+    gatewayConnected,
+    gatewayConnecting,
+    reconnectGateway,
+  } = useIoT();
+
+  const gatewayStatus = gatewayConnecting
+    ? 'Connecting...'
+    : gatewayConnected
+      ? 'Connected'
+      : 'Disconnected';
 
   return (
     <ScrollView style={styles.container}>
@@ -147,7 +162,9 @@ export default function SettingsScreen() {
         <View style={styles.connectionInfo}>
 
           <Ionicons
-            name="cloud-done-outline"
+            name={gatewayConnected
+              ? 'cloud-done-outline'
+              : 'cloud-offline-outline'}
             size={30}
           />
 
@@ -157,13 +174,29 @@ export default function SettingsScreen() {
               IoT Gateway
             </Text>
 
-            <Text style={styles.connectionStatus}>
-              Connected
+            <Text style={[
+              styles.connectionStatus,
+              gatewayConnected
+                ? styles.connected
+                : styles.disconnected,
+            ]}>
+              {gatewayStatus}
             </Text>
 
           </View>
 
         </View>
+
+        {!gatewayConnected && (
+          <Pressable
+            style={styles.reconnectButton}
+            onPress={reconnectGateway}
+          >
+            <Text style={styles.reconnectButtonText}>
+              Reconnect
+            </Text>
+          </Pressable>
+        )}
 
       </View>
 
@@ -248,6 +281,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 15,
     marginTop: 3,
+  },
+
+  connected: {
+    color: '#168a3e',
+    fontWeight: 'bold',
+  },
+
+  disconnected: {
+    color: '#b71c1c',
+    fontWeight: 'bold',
+  },
+
+  reconnectButton: {
+    backgroundColor: '#007aff',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+
+  reconnectButtonText: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: 'bold',
   },
 
 });
